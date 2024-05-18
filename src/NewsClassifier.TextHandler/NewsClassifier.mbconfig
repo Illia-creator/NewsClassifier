@@ -1,0 +1,20 @@
+﻿{
+  "Scenario": "Classification",
+  "Environment": {
+    "Type": "LocalCPU",
+    "Version": 1
+  },
+  "Type": "TrainingConfig",
+  "Version": 4,
+  "TrainingOption": {
+    "Version": 1,
+    "Type": "ClassificationTrainingOption",
+    "TrainingTime": 10,
+    "LabelColumn": "col0",
+    "ValidationOption": {
+      "Version": 0,
+      "Type": "CrossValidationValidationOption",
+      "NumberOfFolds": 5
+    }
+  }
+}
