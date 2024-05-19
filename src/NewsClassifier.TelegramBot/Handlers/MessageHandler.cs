@@ -189,7 +189,7 @@ namespace NewsClassifier.TelegramBot.Handlers
                 new KeyboardButton[] {"Війна", "Політика" },
                 new KeyboardButton[] {"Економіка", "Тактична інформація" },
                 new KeyboardButton[] {"Наука", "Здоров'я" },
-                new KeyboardButton[] {"Економіка", "Спорт" },
+                new KeyboardButton[] {"Погода", "Спорт" },
                 new KeyboardButton[] {"Культура", "Інцеденти" },
             })
             {
