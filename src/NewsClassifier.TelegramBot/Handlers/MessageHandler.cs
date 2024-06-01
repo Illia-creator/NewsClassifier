@@ -1,10 +1,7 @@
-﻿using NewsClassifier.Classifier.Servicess;
+﻿using NewsClassifier.Classifier;
+using NewsClassifier.Classifier.Servicess;
 using NewsClassifier.TelegramBot.Constants;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -29,84 +26,100 @@ namespace NewsClassifier.TelegramBot.Handlers
 
         public async Task SelectCommand(Message message)
         {
-            string resultMessage;
 
-                switch (message.Text)
-                {
-                    case "/info":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/info"]);
-                        break;
-
-                    case "/commands":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/commands"]);
+            switch (message.Text)
+            {
+                case "/statistics":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/statistics"]);
                     break;
 
-                    case "/login":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/login"]);
+                case "/commands":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/commands"]);
+                    break;
+
+                case "/login":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/login"]);
                     if (StatusService.isInOperation(message.Chat.Id))
-                            StatusService.cahngeStatus(message.Chat.Id, "login");
+                        StatusService.cahngeStatus(message.Chat.Id, "login");
                     else
-                            StatusService.addKey(message.Chat.Id, "login");
+                        StatusService.addKey(message.Chat.Id, "login");
                     break;
 
-                    case "/signup":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/signup"]);
+                case "/signup":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/signup"]);
                     if (StatusService.isInOperation(message.Chat.Id))
                         StatusService.cahngeStatus(message.Chat.Id, "signup");
                     else
                         StatusService.addKey(message.Chat.Id, "signup"); ;
                     break;
 
-                    case "/newslist":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/newslist"]);
-                        StatusService.cahngeStatus(message.Chat.Id, "fillinglist");
+                case "/newslist":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/newslist"]);
+                    StatusService.cahngeStatus(message.Chat.Id, "fillinglist");
                     break;
 
-                    case "/newslistclssify":
-                        await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/newslistclssify"]);
-                        StatusService.cahngeStatus(message.Chat.Id, "classifyinglist");
-                        await SelectClassForList(message);
+                case "/newslistclssify":
+                    await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["/newslistclssify"]);
+                    StatusService.cahngeStatus(message.Chat.Id, "classifyinglist");
+                    await SelectClassForList(message);
                     break;
 
                 default:
-                        if (StatusService.isInOperation(message.Chat.Id))
+                    if (StatusService.isInOperation(message.Chat.Id))
+                    {
+                        switch (StatusService.getStatusOfUser(message.Chat.Id))
                         {
-                            switch (StatusService.getStatusOfUser(message.Chat.Id))
-                            {
-                                case "login":
-                                    await LoginUser(message);
+                            case "login":
+                                await LoginUser(message);
                                 break;
 
-                                case "signup":
-                                    await SignupUser(message);
+                            case "signup":
+                                await SignupUser(message);
                                 break;
 
-                                case "awaiting_class_selection":
-                                    await HandleClassSelection(message);
+                            case "awaiting_class_selection":
+                                await HandleClassSelection(message);
                                 break;
 
-                                case "fillinglist":
-                                    await FillListOfNews(message);
+                            case "fillinglist":
+                                await FillListOfNews(message);
                                 break;
 
-                                case ("classifyinglist"):
-                                    await HandleClassSelectionList(message);
+                            case ("classifyinglist"):
+                                await HandleClassSelectionList(message);
                                 break;
 
 
                             default:
                                 await AddDataToDataset(message);
                                 break;
-                            }
-
                         }
-                        else
-                            await _client.SendTextMessageAsync(message.Chat.Id, "заглушка на класификацию");
 
+                    }
+                    else
+                        await _client.SendTextMessageAsync(message.Chat.Id,  ClassifyText(message));
+                        // await _client.SendTextMessageAsync(message.Chat.Id, "Сонь, введи команду /newslist");
                     break;
-                }
+            }
         }
+        private string ClassifyText(Message message)
+        {
+            string text = message.Caption ?? message.Text;
+            string resultClass = "Not classified";
+            if (string.IsNullOrEmpty(text))
+            {
+                return "Відсутній текст для класифікації";
+            }
 
+            using (var engineManager = new PythonEngineManager())
+            {
+                var classifier = new NewsClassifierCalculate();
+                resultClass = classifier.ClassifyNews("text");
+            }
+
+            _loginService.AddText(message.Chat.Id, text, resultClass);
+            return resultClass;
+        }
         private async Task LoginUser(Message message)
         {
             if (_loginService.UserExists(message.Chat.Id))
@@ -137,7 +150,7 @@ namespace NewsClassifier.TelegramBot.Handlers
             {
                 _loginService.AddUser(message.Chat.Id, message.Text);
                 StatusService.cahngeStatus(message.Chat.Id, "redactor");
-                await _client.SendTextMessageAsync(message.Chat.Id, "Вас зареэстровано в системі, як редактора!");
+                await _client.SendTextMessageAsync(message.Chat.Id, "Вас зареєстровано в системі, як редактора!");
             }
             else
             {
@@ -161,14 +174,14 @@ namespace NewsClassifier.TelegramBot.Handlers
                 messages.Add(message.Text);
         }
 
-       
+
 
         public async Task CheckUser(long chatId)
         {
             StatusService.removeKey(chatId);
             if (_loginService.UserExists(chatId))
             {
-                await _client.SendTextMessageAsync(chatId, "Ви авторизовані як адмінестратор!");
+                await _client.SendTextMessageAsync(chatId, "Ви авторизовані як редактор!");
             }
             else
             {
@@ -187,10 +200,8 @@ namespace NewsClassifier.TelegramBot.Handlers
             ReplyKeyboardMarkup keyboard = new(new[]
             {
                 new KeyboardButton[] {"Війна", "Політика" },
-                new KeyboardButton[] {"Економіка", "Тактична інформація" },
-                new KeyboardButton[] {"Наука", "Здоров'я" },
-                new KeyboardButton[] {"Погода", "Спорт" },
-                new KeyboardButton[] {"Культура", "Інцеденти" },
+                new KeyboardButton[] {"Економіка", "Спорт" },
+                new KeyboardButton[] {"Тактична обстановка", "Інше" }
             })
             {
                 ResizeKeyboard = true
@@ -209,7 +220,7 @@ namespace NewsClassifier.TelegramBot.Handlers
             if (string.IsNullOrEmpty(currentNews))
             {
                 var removeKeyboard = new ReplyKeyboardRemove();
-                await _client.SendTextMessageAsync(message.Chat.Id, "новини для класифыкації закінчились. Для додавання нових натисніть /newslist", replyMarkup: removeKeyboard);
+                await _client.SendTextMessageAsync(message.Chat.Id, "Новини для класифікації закінчились. Для додавання нових натисніть /newslist", replyMarkup: removeKeyboard);
                 return;
             }
 
@@ -217,10 +228,8 @@ namespace NewsClassifier.TelegramBot.Handlers
             ReplyKeyboardMarkup keyboard = new(new[]
             {
                 new KeyboardButton[] {"Війна", "Політика" },
-                new KeyboardButton[] {"Економіка", "Тактична інформація" },
-                new KeyboardButton[] {"Наука", "Здоров'я" },
                 new KeyboardButton[] {"Економіка", "Спорт" },
-                new KeyboardButton[] {"Культура", "Інцеденти" },
+                new KeyboardButton[] {"Тактична обстановка", "Інше" }
             })
             {
                 ResizeKeyboard = true
@@ -254,16 +263,26 @@ namespace NewsClassifier.TelegramBot.Handlers
             string originalMessageText = messages.FirstOrDefault();
             string selectedClass = message.Text;
 
-            // Here you can call the method that processes the dataset addition
-            await _classifyService.AddDataToDataset(selectedClass, originalMessageText);
+            if (selectedClass == "Інше")
+            {
+                await _client.SendTextMessageAsync(message.Chat.Id, $"Новину не додано до класу");
+                messages.Remove(originalMessageText);
+                StatusService.cahngeStatus(message.Chat.Id, "classifyinglist");
+                await RedirectToSelection(message);
+            }
+            else
+            {
+                // Here you can call the method that processes the dataset addition
+                await _classifyService.AddDataToDataset(selectedClass, originalMessageText);
 
-            var removeKeyboard = new ReplyKeyboardRemove();
+                var removeKeyboard = new ReplyKeyboardRemove();
 
-            await _client.SendTextMessageAsync(message.Chat.Id, $"Новина додана до класу: {selectedClass}\nТекст новини: {originalMessageText}", replyMarkup: removeKeyboard);
+                await _client.SendTextMessageAsync(message.Chat.Id, $"Новину додано до класу: {selectedClass}\nТекст Новини: {originalMessageText}", replyMarkup: removeKeyboard);
 
-            messages.Remove(originalMessageText);
-            StatusService.cahngeStatus(message.Chat.Id, "classifyinglist");
-            await RedirectToSelection(message);
+                messages.Remove(originalMessageText);
+                StatusService.cahngeStatus(message.Chat.Id, "classifyinglist");
+                await RedirectToSelection(message);
+            }
         }
     }
 }

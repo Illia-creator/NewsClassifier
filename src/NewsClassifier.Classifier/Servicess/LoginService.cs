@@ -26,6 +26,22 @@ namespace NewsClassifier.Classifier.Servicess
             }
         }
 
+        public void AddText(long userId, string text, string textClass)
+        {
+            using (var connection = new NpgsqlConnection(connectionString))
+            {
+                connection.Open();
+
+                using (var command = new NpgsqlCommand("INSERT INTO messages (user_id, text, class) VALUES (@user_id, @text, @class)", connection))
+                {
+                    command.Parameters.AddWithValue("user_id", userId);
+                    command.Parameters.AddWithValue("text", text);
+                    command.Parameters.AddWithValue("class", textClass);
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
         public bool AuthenticateUser(long id, string password)
         {
             using (var connection = new NpgsqlConnection(connectionString))

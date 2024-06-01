@@ -10,7 +10,7 @@ namespace NewsClassifier.Classifier.Servicess
 {
     public class ClassifyService
     {
-        private readonly string filePath = @"C:\Users\sie29\source\repos\NewsClassifier\src\NewsClassifier.Classifier\testFol\news.csv";
+        private readonly string filePath = @"C:\Users\sie29\source\repos\NewsClassifier\src\NewsClassifier.Classifier\testFol\practics_dataset.csv";
 
         public async Task AddDataToDataset(string newsClass, string newsText)
         {

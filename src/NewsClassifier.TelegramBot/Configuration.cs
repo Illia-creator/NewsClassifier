@@ -49,7 +49,7 @@ namespace NewsClassifier.TelegramBot
             {
                 await botClient.SendTextMessageAsync(message.Chat.Id, ex.Message);
             }
-        }
+         }
     }
 
     public static class StatusService
