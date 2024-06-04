@@ -69,10 +69,6 @@ def get_classify_news_label(news_text):
     return result
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: classify_and_exit.py <news_text>")
-        sys.exit(1)
-
     news_text = sys.argv[1]
     get_classify_news_label(news_text)
 

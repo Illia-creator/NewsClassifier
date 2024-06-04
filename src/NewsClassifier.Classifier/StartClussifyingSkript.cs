@@ -1,6 +1,8 @@
-﻿using Python.Runtime;
+﻿using NewsClassifier.Classifier.Servicess;
+using Python.Runtime;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -8,60 +10,28 @@ using System.Threading.Tasks;
 
 namespace NewsClassifier.Classifier
 {
-    public class PythonEngineManager : IDisposable
+    public static class PythonHelper
     {
-        private static bool isInitialized = false;
-
-        public PythonEngineManager()
+        public static string CallScript(string pythonExePath, string scriptPath, string arguments)
         {
-            if (!isInitialized)
-            {
-                Runtime.PythonDLL = @"C:\Users\sie29\AppData\Local\Programs\Python\Python312\python312.dll";
-                PythonEngine.Initialize();
-                isInitialized = true;
-            }
-        }
+            ProcessStartInfo start = new ProcessStartInfo();
+            start.FileName = pythonExePath;
+            start.Arguments = $"\"{scriptPath}\" \"{arguments}\"";
+            start.UseShellExecute = false;
+            start.RedirectStandardOutput = true;
+            start.RedirectStandardError = true;
+            start.StandardOutputEncoding = Encoding.UTF8;  // Указываем UTF-8 кодировку для стандартного вывода
+            start.StandardErrorEncoding = Encoding.UTF8;   // Указываем UTF-8 кодировку для стандартной ошибки
+            start.CreateNoWindow = true;
 
-        public void Dispose()
-        {
-            if (isInitialized)
+            using (Process process = Process.Start(start))
             {
-                try
+                using (System.IO.StreamReader reader = process.StandardOutput)
                 {
-                    PythonEngine.Shutdown();
-                    isInitialized = false;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error during PythonEngine shutdown: " + ex.Message);
+                    string result = reader.ReadToEnd().Trim();
+                    return result;
                 }
             }
-        }
-    }
-
-    public class NewsClassifierCalculate
-    {
-        public string ClassifyNews(string newsText)
-        {
-            string result = null;
-
-            try
-            {
-                using (Py.GIL())
-                {
-                    dynamic sys = Py.Import("sys");
-                    sys.path.append(@"C:\Users\sie29\source\repos\NewsClassifier\src\NewsClassifier.Classifier\testFol");
-                    dynamic pythonScript = Py.Import("pythonskript");
-                    PyObject pyText = new PyString(newsText);
-                    result = pythonScript.get_classify_news_label(pyText).ToString();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-            }
-
-            return result;
         }
     }
 }

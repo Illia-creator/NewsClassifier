@@ -97,8 +97,9 @@ namespace NewsClassifier.TelegramBot.Handlers
 
                     }
                     else
-                        await _client.SendTextMessageAsync(message.Chat.Id,  ClassifyText(message));
-                        // await _client.SendTextMessageAsync(message.Chat.Id, "Сонь, введи команду /newslist");
+                     await SendMessageToUser(message.Chat.Id, CommandResponses.commandResponses["userInstruction"]);
+                    //await _client.SendTextMessageAsync(message.Chat.Id,  ClassifyText(message));
+
                     break;
             }
         }
@@ -111,14 +112,13 @@ namespace NewsClassifier.TelegramBot.Handlers
                 return "Відсутній текст для класифікації";
             }
 
-            using (var engineManager = new PythonEngineManager())
-            {
-                var classifier = new NewsClassifierCalculate();
-                resultClass = classifier.ClassifyNews("text");
-            }
+            string pythonExePath = @"C:\Users\sie29\AppData\Local\Programs\Python\Python312\python.exe";
+            string scriptPath = @"C:\Users\sie29\source\repos\NewsClassifier\src\NewsClassifier.Classifier\testFol\pythonskript.py";
 
-            _loginService.AddText(message.Chat.Id, text, resultClass);
-            return resultClass;
+            string result = PythonHelper.CallScript(pythonExePath, scriptPath, text);
+
+            _loginService.AddText(message.Chat.Id, text, result);
+            return result;
         }
         private async Task LoginUser(Message message)
         {
